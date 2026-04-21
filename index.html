@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>API Schema Validator</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'SF Mono', 'Fira Code', monospace; background: #0e0e0e; color: #e0e0e0; min-height: 100vh; padding: 2rem; }
+  h1 { font-size: 16px; font-weight: 500; color: #888; margin-bottom: 1.5rem; letter-spacing: 0.05em; }
+  .url-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 1.5rem; }
+  .url-bar span { font-size: 12px; color: #555; white-space: nowrap; }
+  .tabs { display: flex; gap: 2px; margin-bottom: 1.5rem; border-bottom: 1px solid #222; }
+  .tab { padding: 8px 16px; font-size: 12px; cursor: pointer; border: none; background: none; color: #555; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: all 0.15s; font-family: inherit; }
+  .tab.active { color: #e0e0e0; border-bottom-color: #e0e0e0; }
+  .tab:hover:not(.active) { color: #aaa; }
+  .panel { display: none; }
+  .panel.active { display: block; }
+  .card { background: #161616; border: 1px solid #222; border-radius: 10px; padding: 1rem 1.25rem; margin-bottom: 12px; }
+  .label { font-size: 11px; color: #555; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; display: block; }
+  input, textarea { width: 100%; font-family: inherit; font-size: 12px; background: #111; border: 1px solid #222; border-radius: 6px; padding: 8px 10px; color: #e0e0e0; outline: none; transition: border-color 0.15s; }
+  input:focus, textarea:focus { border-color: #444; }
+  textarea { resize: vertical; min-height: 80px; }
+  .btn { padding: 7px 14px; font-size: 12px; font-family: inherit; cursor: pointer; border-radius: 6px; border: 1px solid #333; background: none; color: #e0e0e0; transition: all 0.1s; }
+  .btn:hover { background: #1e1e1e; }
+  .btn:active { transform: scale(0.98); }
+  .btn-primary { background: #e0e0e0; color: #0e0e0e; border-color: transparent; font-weight: 500; }
+  .btn-primary:hover { background: #ccc; }
+  .btn-danger { color: #f87171; border-color: #3a1f1f; }
+  .btn-danger:hover { background: #1f1010; }
+  .schema-tag { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 6px; font-size: 12px; margin: 3px; cursor: pointer; transition: border-color 0.15s; }
+  .schema-tag:hover { border-color: #444; }
+  .schema-tag button { background: none; border: none; cursor: pointer; color: #555; font-size: 16px; padding: 0; line-height: 1; }
+  .schema-tag button:hover { color: #f87171; }
+  .payload-item { border: 1px solid #222; border-radius: 10px; padding: 12px; margin-bottom: 8px; background: #161616; }
+  .payload-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .payload-schema { font-size: 11px; padding: 2px 8px; border-radius: 6px; background: #1a2a1a; color: #4ade80; font-weight: 500; }
+  .result-item { border-radius: 10px; padding: 12px; margin-bottom: 8px; border: 1px solid #222; }
+  .result-item.pass { border-color: #1a3a1a; background: #0f1f0f; }
+  .result-item.fail { border-color: #3a1a1a; background: #1f0f0f; }
+  .result-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .badge { font-size: 11px; padding: 2px 8px; border-radius: 6px; font-weight: 500; }
+  .badge.pass { background: #1a3a1a; color: #4ade80; }
+  .badge.fail { background: #3a1a1a; color: #f87171; }
+  .error-line { font-size: 12px; color: #f87171; padding: 2px 0; display: flex; gap: 6px; }
+  .error-line::before { content: "✗"; flex-shrink: 0; }
+  .run-btn-wrap { margin-bottom: 1.5rem; display: flex; align-items: center; gap: 12px; }
+  .status-text { font-size: 12px; color: #555; }
+  .empty { text-align: center; padding: 2rem; font-size: 13px; color: #444; }
+  .metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 1.5rem; }
+  .metric { background: #161616; border: 1px solid #222; border-radius: 8px; padding: 12px; text-align: center; }
+  .metric-val { font-size: 22px; font-weight: 500; }
+  .metric-label { font-size: 11px; color: #555; margin-top: 2px; }
+  .val-pass { color: #4ade80; }
+  .val-fail { color: #f87171; }
+  .section-title { font-size: 12px; font-weight: 500; margin-bottom: 10px; color: #555; text-transform: uppercase; letter-spacing: 0.05em; }
+  .divider { border: none; border-top: 1px solid #1e1e1e; margin: 1.25rem 0; }
+  .load-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 1.25rem; padding: 10px 14px; background: #161616; border: 1px solid #222; border-radius: 8px; }
+  .load-bar span { font-size: 12px; color: #555; flex: 1; }
+  #file-input { display: none; }
+  .hint { font-size: 11px; color: #444; margin-top: 6px; }
+</style>
+</head>
+<body>
+
+<h1>api schema validator</h1>
+
+<div class="url-bar">
+  <span>base url</span>
+  <input type="text" id="baseUrl" value="http://127.0.0.1:8001" />
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('schemas', this)">schemas</button>
+  <button class="tab" onclick="switchTab('payloads', this)">payloads</button>
+
+</div>
+
+<div id="tab-schemas" class="panel active">
+  <p class="section-title">registered schemas</p>
+  <div class="card" id="schema-list" style="min-height:48px;"></div>
+  <hr class="divider">
+  <p class="section-title">collections</p>
+  <div class="card" id="collection-list" style="min-height:48px;"></div>
+  <hr class="divider">
+  <p class="section-title">register new schema</p>
+  <div class="card">
+    <div style="margin-bottom:10px;">
+      <span class="label">schema name</span>
+      <input type="text" id="new-schema-name" placeholder="e.g. student" />
+    </div>
+    <div style="margin-bottom:10px;">
+      <span class="label">fields (json — field: type)</span>
+      <textarea id="new-schema-body" placeholder='{"name": "str", "age": "int", "email": "str"}'></textarea>
+    </div>
+    <div style="margin-bottom:10px;">
+      <span class="label">save to collection file (optional)</span>
+      <input type="text" id="new-schema-collection" placeholder="e.g. school (leave blank to skip)" />
+      <p class="hint">saves to collections/school.json on the server alongside other schemas</p>
+    </div>
+    <button class="btn btn-primary" onclick="registerSchema()">register schema</button>
+  </div>
+  <hr class="divider">
+  <p class="section-title">bulk register</p>
+  <div class="card">
+    <div style="margin-bottom:10px;">
+      <span class="label">schemas (json — name: fields)</span>
+      <textarea id="bulk-body" placeholder='{"student": {"student_id": "int", "name": "str"}, "cost": {"fee_id": "int", "amount": "float"}}' style="min-height:100px;"></textarea>
+    </div>
+    <div style="margin-bottom:10px;">
+      <span class="label">save all to collection file (optional)</span>
+      <input type="text" id="bulk-collection" placeholder="e.g. school (leave blank to skip)" />
+    </div>
+    <button class="btn btn-primary" onclick="bulkRegister()">register all</button>
+    <span class="status-text" id="bulk-status" style="margin-left:10px;"></span>
+  </div>
+</div>
+
+<div id="tab-payloads" class="panel">
+  <div class="load-bar">
+    <span id="load-label">no file loaded</span>
+    <input type="file" id="file-input" accept=".json" onchange="loadPayloadsFile(this)" />
+    <button class="btn" onclick="document.getElementById('file-input').click()">load payloads.json</button>
+    <button class="btn" onclick="showLoadCollection()">load from collection</button>
+    <button class="btn" onclick="savePayloads()">save to payloads.json</button>
+    <button class="btn btn-danger" onclick="clearPayloads()">clear payloads.json</button>
+    <button class="btn btn-primary" onclick="showAddPayload()">+ add payload</button>
+    <button class="btn" onclick="showBulkAdd()">+ bulk add</button>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:1rem;">
+    <button class="btn btn-primary" onclick="runSelected()">run selected</button>
+    <span id="run-status" style="font-size:13px;font-weight:500;color:#e0e0e0;background:#1e1e1e;border:1px solid #333;border-radius:6px;padding:6px 12px;display:none;"></span>
+  </div>
+  <div id="metrics" style="display:none;" class="metrics">
+    <div class="metric"><div class="metric-val" id="m-total">0</div><div class="metric-label">total</div></div>
+    <div class="metric"><div class="metric-val val-pass" id="m-pass">0</div><div class="metric-label">passed</div></div>
+    <div class="metric"><div class="metric-val val-fail" id="m-fail">0</div><div class="metric-label">failed</div></div>
+  </div>
+  <div id="results-list"></div>
+  <hr class="divider" id="results-divider" style="display:none;border-top:2px solid #333;margin:1.5rem 0;">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:1rem;" id="select-bar">
+    <button class="btn" onclick="selectAll()">select all</button>
+    <button class="btn" onclick="selectNone()">deselect all</button>
+  </div>
+  <div id="add-payload-form" class="card" style="display:none; margin-bottom:12px;">
+    <div style="margin-bottom:10px;">
+      <span class="label">schema name</span>
+      <input type="text" id="p-schema" placeholder="e.g. student" />
+      <p class="hint">must already be registered in the schemas tab</p>
+    </div>
+    <div style="margin-bottom:10px;">
+      <span class="label">test payload (json object)</span>
+      <textarea id="p-body" placeholder='{"name": "Alice", "age": 30}'></textarea>
+    </div>
+    <div style="display:flex; gap:8px;">
+      <button class="btn btn-primary" onclick="addPayload()">add</button>
+      <button class="btn" onclick="hideAddPayload()">cancel</button>
+    </div>
+  </div>
+  <div id="bulk-add-form" class="card" style="display:none; margin-bottom:12px;">
+    <div style="margin-bottom:10px;">
+      <span class="label">bulk payloads (json array)</span>
+      <textarea id="bulk-add-body" style="min-height:120px;font-size:11px;" placeholder='[{"schemaName": "student", "validateBody": {"student_id": 1, "name": "Maya", "gpa": 3.85}}, {"schemaName": "cost", "validateBody": {"fee_id": 101, "amount": 500.50, "type": "tuition"}}]'></textarea>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-primary" onclick="bulkAddPayloads()">add all</button>
+      <button class="btn" onclick="hideBulkAdd()">cancel</button>
+    </div>
+  </div>
+  <div id="payload-list"></div>
+</div>
+
+
+
+<script>
+let payloads = [];
+
+function getBase() { return document.getElementById('baseUrl').value.replace(/\/$/, ''); }
+
+function switchTab(name, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  el.classList.add('active');
+  if (name === 'schemas') { loadSchemas();
+loadCollections(); loadCollections(); }
+  if (name === 'payloads') renderPayloads();
+}
+
+function updateLabel() {
+  const n = payloads.length;
+  document.getElementById('load-label').textContent = n + ' payload' + (n !== 1 ? 's' : '') + ' loaded';
+}
+
+function loadPayloadsFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data = JSON.parse(e.target.result);
+      payloads = data.map(p => ({ schema: p.schemaName, body: p.validateBody, selected: true }));
+      updateLabel();
+      renderPayloads();
+    } catch {
+      alert('invalid json in file');
+    }
+  };
+  reader.readAsText(file);
+}
+
+async function savePayloads() {
+  if (!payloads.length) return alert('no payloads to save');
+  const data = payloads.map(p => ({ schemaName: p.schema, validateBody: p.body }));
+  const res = await fetch(getBase() + '/payloads/save', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ payloads: data }) });
+  if (res.ok) alert('saved ' + payloads.length + ' payload' + (payloads.length !== 1 ? 's' : '') + ' to payloads.json');
+  else alert('failed to save');
+}
+
+async function clearPayloads() {
+  if (!confirm('clear payloads.json? this cannot be undone')) return;
+  const res = await fetch(getBase() + '/payloads/clear', { method: 'POST' });
+  if (res.ok) { payloads = []; updateLabel(); renderPayloads(); document.getElementById('metrics').style.display='none'; document.getElementById('results-list').innerHTML=''; document.getElementById('results-divider').style.display='none'; document.getElementById('run-status').style.display='none'; alert('payloads.json cleared'); }
+  else alert('failed to clear');
+}
+
+async function showLoadCollection() {
+  const res = await fetch(getBase() + '/collections');
+  if (!res.ok) return alert('could not load collections');
+  const cols = await res.json();
+  const el = document.getElementById('collection-modal-list');
+  if (!cols.length) {
+    el.innerHTML = '<span style="font-size:12px;color:#555;">no collections yet</span>';
+  } else {
+    el.innerHTML = cols.map(c => `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #222;">
+        <span style="font-size:13px;">${c}.json</span>
+        <button class="btn btn-primary" onclick="loadFromCollection('${c}')">load</button>
+      </div>
+    `).join('');
+  }
+  document.getElementById('collection-modal').style.display = 'flex';
+}
+
+async function loadFromCollection(name) {
+  const res = await fetch(getBase() + '/collections/' + name);
+  if (!res.ok) return alert('could not load collection');
+  const data = await res.json();
+  const newPayloads = data.filter(p => p.validateBody).map(p => ({
+    schema: p.schemaName,
+    body: p.validateBody,
+    selected: true
+  }));
+  if (!newPayloads.length) return alert(name + '.json has no payloads with test data yet');
+  payloads = payloads.concat(newPayloads);
+  updateLabel();
+  renderPayloads();
+  closeCollectionModal();
+}
+
+function closeCollectionModal() {
+  document.getElementById('collection-modal').style.display = 'none';
+}
+
+let currentEditSchema = null;
+let originalSchemaFields = null;
+
+function toggleSchemaEdit() {
+  const area = document.getElementById('modal-edit-area');
+  const fields = document.getElementById('modal-fields');
+  const actions = document.getElementById('modal-edit-actions');
+  const btn = document.getElementById('modal-edit-btn');
+  if (area.style.display === 'none') {
+    area.value = JSON.stringify(originalSchemaFields, null, 2);
+    area.style.display = 'block';
+    actions.style.display = 'flex';
+    fields.style.display = 'none';
+    btn.textContent = 'cancel edit';
+  } else {
+    cancelSchemaEdit();
+  }
+}
+
+function cancelSchemaEdit() {
+  document.getElementById('modal-edit-area').style.display = 'none';
+  document.getElementById('modal-edit-actions').style.display = 'none';
+  document.getElementById('modal-fields').style.display = 'block';
+  document.getElementById('modal-edit-btn').textContent = 'edit';
+}
+
+async function saveSchemaEdit() {
+  const area = document.getElementById('modal-edit-area');
+  let parsed;
+  try { parsed = JSON.parse(area.value); } catch { return alert('invalid json'); }
+  const res = await fetch(getBase() + '/templates/' + currentEditSchema, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(parsed) });
+  if (!res.ok) return alert('failed to save');
+  originalSchemaFields = parsed;
+  cancelSchemaEdit();
+  await viewSchema(currentEditSchema);
+}
+
+let payloadEditOriginal = {};
+
+function togglePayloadEdit(i) {
+  const actions = document.getElementById('payload-edit-actions-' + i);
+  const textarea = document.getElementById('payload-body-' + i);
+  if (actions.style.display === 'none' || actions.style.display === '') {
+    payloadEditOriginal[i] = textarea.value;
+    textarea.style.borderColor = '#4ade80';
+    actions.style.display = 'flex';
+  } else {
+    cancelPayloadEdit(i);
+  }
+}
+
+function savePayloadEdit(i) {
+  const textarea = document.getElementById('payload-body-' + i);
+  try {
+    let str = textarea.value.trim();
+    if (str.startsWith('"') && str.endsWith('"')) str = JSON.parse(str);
+    JSON.parse(str);
+    payloads[i].body = textarea.value;
+  } catch { return alert('invalid json'); }
+  textarea.style.borderColor = '';
+  document.getElementById('payload-edit-actions-' + i).style.display = 'none';
+}
+
+function cancelPayloadEdit(i) {
+  const textarea = document.getElementById('payload-body-' + i);
+  textarea.value = payloadEditOriginal[i];
+  payloads[i].body = payloadEditOriginal[i];
+  textarea.style.borderColor = '';
+  document.getElementById('payload-edit-actions-' + i).style.display = 'none';
+}
+
+async function viewSchema(name) {
+  const res = await fetch(getBase() + '/templates/' + name);
+  if (!res.ok) return alert('could not load schema');
+  const fields = await res.json();
+  currentEditSchema = name;
+  originalSchemaFields = fields;
+  document.getElementById('modal-title').textContent = name;
+  document.getElementById('modal-fields').innerHTML = Object.entries(fields).map(([k, v]) => `
+    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #222;font-size:12px;">
+      <span style="color:#e0e0e0;">${k}</span>
+      <span style="color:#4ade80;">${v}</span>
+    </div>
+  `).join('');
+  document.getElementById('modal-fields').style.display = 'block';
+  document.getElementById('modal-edit-area').style.display = 'none';
+  document.getElementById('modal-edit-actions').style.display = 'none';
+  document.getElementById('modal-edit-btn').textContent = 'edit';
+  const modal = document.getElementById('schema-modal');
+  modal.style.display = 'flex';
+}
+
+function closeModal() {
+  document.getElementById('schema-modal').style.display = 'none';
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+async function loadCollections() {
+  const el = document.getElementById('collection-list');
+  el.innerHTML = '<span style="font-size:12px;color:#555;">loading...</span>';
+  try {
+    const res = await fetch(getBase() + '/collections');
+    if (!res.ok) throw new Error();
+    const cols = await res.json();
+    if (!cols.length) { el.innerHTML = '<span style="font-size:12px;color:#555;">no collections yet</span>'; return; }
+    el.innerHTML = cols.map(c => `<span class="schema-tag">${c}<button onclick="deleteCollection('${c}')" title="delete">×</button></span>`).join('');
+  } catch {
+    el.innerHTML = '<span style="font-size:12px;color:#555;">none</span>';
+  }
+}
+
+async function deleteCollection(name) {
+  if (!confirm('delete collection "' + name + '.json"?')) return;
+  await fetch(getBase() + '/collections/' + name, { method: 'DELETE' });
+  loadCollections();
+}
+
+async function loadSchemas() {
+  const el = document.getElementById('schema-list');
+  el.innerHTML = '<span style="font-size:12px;color:#555;">loading...</span>';
+  try {
+    const res = await fetch(getBase() + '/templates');
+    if (!res.ok) throw new Error();
+    const schemas = await res.json();
+    if (!schemas.length) { el.innerHTML = '<span style="font-size:12px;color:#555;">no schemas registered yet</span>'; return; }
+    el.innerHTML = schemas.map(s => `<span class="schema-tag" onclick="viewSchema('${s}')">${s}<button onclick="event.stopPropagation();deleteSchema('${s}')" title="delete">×</button></span>`).join('');
+  } catch {
+    el.innerHTML = '<span style="font-size:12px;color:#f87171;">could not reach server — is it running?</span>';
+  }
+}
+
+async function registerSchema() {
+  const name = document.getElementById('new-schema-name').value.trim();
+  const body = document.getElementById('new-schema-body').value.trim();
+  const collection = document.getElementById('new-schema-collection').value.trim();
+  if (!name || !body) return alert('fill in both fields');
+  let parsed;
+  try { parsed = JSON.parse(body); } catch { return alert('invalid json'); }
+  const res = await fetch(getBase() + '/templates/' + name, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(parsed) });
+  if (!res.ok) return alert('failed to register schema');
+  if (collection) {
+    await fetch(getBase() + '/collections/' + collection, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ schemaName: name, registerBody: body, validateBody: '' })
+    });
+  }
+  document.getElementById('new-schema-name').value = '';
+  document.getElementById('new-schema-body').value = '';
+  document.getElementById('new-schema-collection').value = '';
+  loadSchemas();
+}
+
+async function bulkRegister() {
+  const body = document.getElementById('bulk-body').value.trim();
+  const collection = document.getElementById('bulk-collection').value.trim();
+  const status = document.getElementById('bulk-status');
+  if (!body) return alert('paste your schemas first');
+  let schemas;
+  try { schemas = JSON.parse(body); } catch { return alert('invalid json'); }
+  const names = Object.keys(schemas);
+  if (!names.length) return alert('no schemas found');
+  status.textContent = 'registering...';
+  let done = 0;
+  for (const name of names) {
+    const fields = schemas[name];
+    const res = await fetch(getBase() + '/templates/' + name, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(fields) });
+    if (!res.ok) { status.textContent = 'failed on ' + name; return; }
+    if (collection) {
+      await fetch(getBase() + '/collections/' + collection, {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ schemaName: name, registerBody: JSON.stringify(fields), validateBody: '' })
+      });
+    }
+    done++;
+  }
+  status.textContent = done + ' schema' + (done !== 1 ? 's' : '') + ' registered' + (collection ? ' + saved to ' + collection + '.json' : '');
+  document.getElementById('bulk-body').value = '';
+  document.getElementById('bulk-collection').value = '';
+  loadSchemas();
+  loadCollections();
+}
+
+async function deleteSchema(name) {
+  if (!confirm('delete schema "' + name + '"?')) return;
+  await fetch(getBase() + '/templates/' + name, { method: 'DELETE' });
+  loadSchemas();
+}
+
+function renderPayloads() {
+  const el = document.getElementById('payload-list');
+  if (!payloads.length) { el.innerHTML = '<div class="empty">no payloads yet — load payloads.json or add one manually</div>'; return; }
+  el.innerHTML = payloads.map((p, i) => `
+    <div class="payload-item" id="payload-item-${i}">
+      <div class="payload-header">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <input type="checkbox" id="chk-${i}" ${p.selected !== false ? 'checked' : ''} onchange="payloads[${i}].selected=this.checked" style="width:14px;height:14px;cursor:pointer;accent-color:#4ade80;" />
+          <span class="payload-schema">${p.schema}</span>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn" onclick="togglePayloadEdit(${i})">edit</button>
+          <button class="btn btn-danger" onclick="removePayload(${i})">remove</button>
+        </div>
+      </div>
+      <span class="label">payload</span>
+      <textarea id="payload-body-${i}" style="font-size:11px;" onchange="payloads[${i}].body=this.value">${p.body}</textarea>
+      <div id="payload-edit-actions-${i}" style="display:none;margin-top:8px;gap:8px;">
+        <button class="btn btn-primary" onclick="savePayloadEdit(${i})">save</button>
+        <button class="btn" onclick="cancelPayloadEdit(${i})">cancel</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function showAddPayload() { document.getElementById('add-payload-form').style.display = 'block'; document.getElementById('bulk-add-form').style.display = 'none'; }
+function showBulkAdd() { document.getElementById('bulk-add-form').style.display = 'block'; document.getElementById('add-payload-form').style.display = 'none'; }
+function hideBulkAdd() { document.getElementById('bulk-add-form').style.display = 'none'; }
+
+async function bulkAddPayloads() {
+  const raw = document.getElementById('bulk-add-body').value.trim();
+  if (!raw) return alert('paste your payloads first');
+  let data;
+  try { data = JSON.parse(raw); } catch { return alert('invalid json'); }
+  if (!Array.isArray(data)) return alert('must be a json array');
+  let added = 0;
+  for (const item of data) {
+    if (!item.schemaName || !item.validateBody) continue;
+    const schemaRes = await fetch(getBase() + '/templates/' + item.schemaName);
+    if (!schemaRes.ok) { alert('schema "' + item.schemaName + '" not found — skipping'); continue; }
+    payloads.push({ schema: item.schemaName, body: JSON.stringify(item.validateBody), selected: true });
+    added++;
+  }
+  document.getElementById('bulk-add-body').value = '';
+  hideBulkAdd();
+  updateLabel();
+  renderPayloads();
+  if (added) alert(added + ' payload' + (added !== 1 ? 's' : '') + ' added');
+}
+function hideAddPayload() { document.getElementById('add-payload-form').style.display = 'none'; }
+
+async function addPayload() {
+  const schema = document.getElementById('p-schema').value.trim();
+  const body = document.getElementById('p-body').value.trim();
+  if (!schema || !body) return alert('fill in both fields');
+  let parsed;
+  try {
+    let str = body.trim();
+    if (str.startsWith('"') && str.endsWith('"')) str = JSON.parse(str);
+    parsed = JSON.parse(str);
+  } catch { return alert('invalid json'); }
+  const schemaRes = await fetch(getBase() + '/templates/' + schema);
+  if (!schemaRes.ok) return alert('schema "' + schema + '" not found — register it first in the schemas tab');
+  payloads.push({ schema, body: JSON.stringify(parsed), selected: true });
+  document.getElementById('p-schema').value = '';
+  document.getElementById('p-body').value = '';
+  hideAddPayload();
+  updateLabel();
+  renderPayloads();
+}
+
+function removePayload(i) { payloads.splice(i, 1); updateLabel(); renderPayloads(); }
+
+function selectAll() {
+  payloads.forEach(p => p.selected = true);
+  renderPayloads();
+}
+
+function selectNone() {
+  payloads.forEach(p => p.selected = false);
+  renderPayloads();
+}
+
+async function runSelected() {
+  const selected = payloads.map((p, i) => ({ p, i })).filter(({ p }) => p.selected !== false);
+  if (!selected.length) return alert('no payloads selected');
+  const status = document.getElementById('run-status');
+  const list = document.getElementById('results-list');
+  const metrics = document.getElementById('metrics');
+  list.innerHTML = '';
+  metrics.style.display = 'none';
+  status.style.display = 'inline-block';
+  status.textContent = 'running...';
+  document.getElementById('results-divider').style.display = 'none';
+  let pass = 0, fail = 0;
+  for (let idx = 0; idx < selected.length; idx++) {
+    const { p, i } = selected[idx];
+    status.textContent = `running ${idx+1}/${selected.length}...`;
+    try {
+      let valBody;
+      try {
+        let str = p.body.trim();
+        if (str.startsWith('"') && str.endsWith('"')) str = JSON.parse(str);
+        valBody = JSON.parse(str);
+      } catch { valBody = {}; }
+      const res = await fetch(getBase() + '/validate/' + p.schema, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(valBody) });
+      const data = await res.json();
+      const isPass = data.valid;
+      if (isPass) pass++; else fail++;
+      const errors = (!isPass && data.errors) ? data.errors.map(e => `<div class="error-line">${e}</div>`).join('') : '';
+      list.innerHTML += `
+        <div class="result-item ${isPass ? 'pass' : 'fail'}">
+          <div class="result-header">
+            <span style="font-size:12px;font-weight:500;">#${idx+1} — <span style="opacity:0.6">${p.schema}</span></span>
+            <span class="badge ${isPass ? 'pass' : 'fail'}">${isPass ? 'valid' : 'invalid'}</span>
+          </div>
+          ${errors}
+        </div>`;
+    } catch {
+      fail++;
+      list.innerHTML += `<div class="result-item fail"><div class="result-header"><span style="font-size:12px;">#${idx+1} — ${p.schema}</span><span class="badge fail">error</span></div><div class="error-line">could not reach server</div></div>`;
+    }
+  }
+  status.textContent = `done — ${pass + fail} ran`;
+  status.style.display = 'inline-block';
+  document.getElementById('results-divider').style.display = 'block';
+  document.getElementById('m-total').textContent = pass + fail;
+  document.getElementById('m-pass').textContent = pass;
+  document.getElementById('m-fail').textContent = fail;
+  metrics.style.display = 'grid';
+}
+
+loadSchemas();
+</script>
+<div id="collection-modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:100;align-items:center;justify-content:center;">
+  <div style="background:#161616;border:1px solid #333;border-radius:12px;padding:1.5rem;min-width:320px;max-width:480px;width:90%;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+      <span style="font-size:14px;font-weight:500;">load from collection</span>
+      <button class="btn" onclick="closeCollectionModal()" style="padding:4px 10px;">×</button>
+    </div>
+    <div id="collection-modal-list"></div>
+  </div>
+</div>
+<div id="schema-modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:100;align-items:center;justify-content:center;">
+  <div style="background:#161616;border:1px solid #333;border-radius:12px;padding:1.5rem;min-width:360px;max-width:560px;width:90%;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+      <span style="font-size:14px;font-weight:500;" id="modal-title"></span>
+      <div style="display:flex;gap:8px;">
+        <button class="btn" id="modal-edit-btn" onclick="toggleSchemaEdit()">edit</button>
+        <button class="btn" onclick="closeModal()" style="padding:4px 10px;">×</button>
+      </div>
+    </div>
+    <div id="modal-fields"></div>
+    <textarea id="modal-edit-area" style="display:none;font-size:12px;min-height:120px;margin-top:10px;"></textarea>
+    <div id="modal-edit-actions" style="display:none;margin-top:10px;display:none;gap:8px;">
+      <button class="btn btn-primary" onclick="saveSchemaEdit()">save</button>
+      <button class="btn" onclick="cancelSchemaEdit()">cancel</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>
