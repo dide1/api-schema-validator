@@ -187,6 +187,11 @@ class PayloadDeleteResponse(BaseModel):
     message: str
 
 
+class TeamMembersResponse(BaseModel):
+    team_id: str
+    members: list[UserResponse]
+
+
 class InviteResponse(BaseModel):
     token: str
     team_id: str
