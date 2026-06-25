@@ -1,0 +1,9 @@
+fastapi
+pydantic>=2.0
+jsonschema
+mangum
+authlib
+python-jose[cryptography]
+httpx
+boto3
+itsdangerous
