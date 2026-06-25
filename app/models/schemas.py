@@ -142,6 +142,51 @@ class GitStatusResponse(BaseModel):
     untracked: list[str]
 
 
+class PayloadSummary(BaseModel):
+    payload_name: str
+    owner_id: str
+    owner_name: str
+    visibility: Visibility
+    team_id: str | None = None
+    schema_name: str | None = None
+    updated_at: str | None = None
+
+
+class PayloadDetail(BaseModel):
+    payload_name: str
+    content: dict[str, Any]
+    owner_id: str
+    visibility: Visibility
+    team_id: str | None = None
+    schema_name: str | None = None
+    updated_at: str | None = None
+
+
+class PayloadSaveRequest(BaseModel):
+    payload_name: str = Field(..., min_length=1, pattern=r"^[a-zA-Z0-9_-]+$")
+    content: dict[str, Any]
+    visibility: Visibility = Visibility.PRIVATE
+    team_id: str | None = None
+    schema_name: str | None = None
+
+
+class PayloadUpdateRequest(BaseModel):
+    content: dict[str, Any] | None = None
+    visibility: Visibility | None = None
+    team_id: str | None = None
+    schema_name: str | None = None
+
+
+class PayloadListResponse(BaseModel):
+    payloads: list[PayloadSummary]
+
+
+class PayloadDeleteResponse(BaseModel):
+    success: bool
+    payload_name: str
+    message: str
+
+
 class InviteResponse(BaseModel):
     token: str
     team_id: str
