@@ -42,10 +42,13 @@ def status() -> dict[str, str | list[str]]:
         except TypeError:
             branch = "HEAD (detached)"
 
-        staged = [
-            item.a_path or item.b_path or ""
-            for item in repo.index.diff("HEAD")
-        ]
+        try:
+            staged = [
+                item.a_path or item.b_path or ""
+                for item in repo.index.diff("HEAD")
+            ]
+        except BadName:
+            staged = []
         unstaged = [
             item.a_path or item.b_path or ""
             for item in repo.index.diff(None)
