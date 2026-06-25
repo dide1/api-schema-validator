@@ -59,8 +59,8 @@ async def callback(provider: str, request: Request):
     try:
         _user, token = await auth_service.handle_oauth_callback(provider, request)
     except Exception as exc:
-        error = quote(str(exc))
-        return RedirectResponse(url=f"{app.config.FRONTEND_URL}/auth/callback?error={error}")
+        logger.error("OAuth callback failed", extra={"provider": provider, "error": str(exc)}, exc_info=True)
+        return RedirectResponse(url=f"{app.config.FRONTEND_URL}/auth/callback?error=oauth_failed")
     return RedirectResponse(
         url=f"{app.config.FRONTEND_URL}/auth/callback?token={quote(token, safe='')}"
     )

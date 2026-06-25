@@ -9,7 +9,7 @@ from jsonschema.exceptions import SchemaError
 from starlette.middleware.sessions import SessionMiddleware
 
 import app.config  # noqa: F401 — load environment before services
-from app.config import AUTH_ENABLED, CORS_ORIGINS, IS_LAMBDA, JWT_SECRET
+from app.config import AUTH_ENABLED, CORS_ORIGINS, IS_LAMBDA, SESSION_SECRET
 from app.exceptions.errors import (
     BadRequestError,
     ForbiddenError,
@@ -102,7 +102,7 @@ app.add_middleware(
 )
 
 if AUTH_ENABLED:
-    app.add_middleware(SessionMiddleware, secret_key=JWT_SECRET)
+    app.add_middleware(SessionMiddleware, secret_key=SESSION_SECRET)
 
 app.add_exception_handler(BadRequestError, bad_request_handler)
 app.add_exception_handler(UnauthorizedError, unauthorized_handler)

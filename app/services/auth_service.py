@@ -86,7 +86,9 @@ def get_user_from_token(token: str) -> User:
 def _resolve_role(email: str, existing: User | None) -> Role:
     if existing:
         return existing.role
-    return Role.ADMIN
+    if ADMIN_EMAILS and email.lower() in ADMIN_EMAILS:
+        return Role.ADMIN
+    return Role.VIEWER
 
 
 async def handle_oauth_callback(provider: str, request: Request) -> tuple[User, str]:
