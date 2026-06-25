@@ -30,3 +30,30 @@ DYNAMODB_TEAMS_TABLE = os.getenv("DYNAMODB_TEAMS_TABLE", "")
 DYNAMODB_INVITES_TABLE = os.getenv("DYNAMODB_INVITES_TABLE", "")
 DYNAMODB_PAYLOADS_TABLE = os.getenv("DYNAMODB_PAYLOADS_TABLE", "")
 
+AUTH_ENABLED = os.getenv("AUTH_ENABLED", "false").lower() in ("true", "1", "yes")
+JWT_SECRET = os.getenv("JWT_SECRET", "dev-secret-change-in-production")
+JWT_EXPIRE_MINUTES = int(os.getenv("JWT_EXPIRE_MINUTES", "60"))
+JWT_ALGORITHM = "HS256"
+
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")
+GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET", "")
+GITHUB_CLIENT_ID = os.getenv("GITHUB_CLIENT_ID", "")
+GITHUB_CLIENT_SECRET = os.getenv("GITHUB_CLIENT_SECRET", "")
+
+OAUTH_REDIRECT_BASE = os.getenv("OAUTH_REDIRECT_BASE", "http://localhost:8000")
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
+
+ADMIN_EMAILS = {
+    email.strip().lower()
+    for email in os.getenv("ADMIN_EMAILS", "").split(",")
+    if email.strip()
+}
+
+DEFAULT_ORG_ID = os.getenv("DEFAULT_ORG_ID", "default")
+
+CORS_ORIGINS = [
+    origin.strip()
+    for origin in os.getenv("CORS_ORIGINS", FRONTEND_URL).split(",")
+    if origin.strip()
+]
+
