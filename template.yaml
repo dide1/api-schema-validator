@@ -1,0 +1,222 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: API Schema Validator on AWS Lambda with auth and persistent storage
+
+Globals:
+  Function:
+    Timeout: 30
+    MemorySize: 512
+    Runtime: python3.11
+    Architectures:
+      - x86_64
+
+Parameters:
+  FunctionUrlAuthType:
+    Type: String
+    Default: NONE
+    AllowedValues:
+      - NONE
+      - AWS_IAM
+    Description: Lambda Function URL auth (use AWS_IAM in production)
+  FrontendUrl:
+    Type: String
+    Default: http://localhost:5173
+    Description: Frontend origin for CORS and OAuth redirects
+  JwtSecret:
+    Type: String
+    NoEcho: true
+    Default: change-me-in-production
+  GoogleClientId:
+    Type: String
+    Default: ""
+  GoogleClientSecret:
+    Type: String
+    NoEcho: true
+    Default: ""
+  GitHubClientId:
+    Type: String
+    Default: ""
+  GitHubClientSecret:
+    Type: String
+    NoEcho: true
+    Default: ""
+  AdminEmails:
+    Type: String
+    Default: ""
+    Description: Comma-separated admin email addresses
+
+Resources:
+  SchemasBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  FrontendBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      WebsiteConfiguration:
+        IndexDocument: index.html
+        ErrorDocument: index.html
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: false
+        BlockPublicPolicy: false
+        IgnorePublicAcls: false
+        RestrictPublicBuckets: false
+
+  FrontendBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref FrontendBucket
+      PolicyDocument:
+        Statement:
+          - Sid: PublicReadGetObject
+            Effect: Allow
+            Principal: "*"
+            Action: s3:GetObject
+            Resource: !Sub "${FrontendBucket.Arn}/*"
+
+  UsersTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+        - AttributeName: oauth_provider
+          AttributeType: S
+        - AttributeName: oauth_sub
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: oauth-index
+          KeySchema:
+            - AttributeName: oauth_provider
+              KeyType: HASH
+            - AttributeName: oauth_sub
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+
+  TemplatesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: template_id
+          AttributeType: S
+        - AttributeName: schema_name
+          AttributeType: S
+      KeySchema:
+        - AttributeName: template_id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: schema-name-index
+          KeySchema:
+            - AttributeName: schema_name
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+
+  InvitesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: token
+          AttributeType: S
+      KeySchema:
+        - AttributeName: token
+          KeyType: HASH
+
+  PayloadsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: payload_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: payload_id
+          KeyType: HASH
+
+  ApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: handler.handler
+      Description: Validate JSON payloads against JSON Schemas with auth
+      CodeUri: .
+      Environment:
+        Variables:
+          AUTH_ENABLED: "true"
+          STORAGE_BACKEND: aws
+          BUNDLED_SCHEMAS_DIR: /var/task/schemas
+          WRITABLE_SCHEMAS_DIR: /tmp/schemas
+          S3_BUCKET: !Ref SchemasBucket
+          DYNAMODB_USERS_TABLE: !Ref UsersTable
+          DYNAMODB_TEMPLATES_TABLE: !Ref TemplatesTable
+          DYNAMODB_INVITES_TABLE: !Ref InvitesTable
+          DYNAMODB_PAYLOADS_TABLE: !Ref PayloadsTable
+          JWT_SECRET: !Ref JwtSecret
+          FRONTEND_URL: !Ref FrontendUrl
+          CORS_ORIGINS: !Ref FrontendUrl
+          GOOGLE_CLIENT_ID: !Ref GoogleClientId
+          GOOGLE_CLIENT_SECRET: !Ref GoogleClientSecret
+          GITHUB_CLIENT_ID: !Ref GitHubClientId
+          GITHUB_CLIENT_SECRET: !Ref GitHubClientSecret
+          ADMIN_EMAILS: !Ref AdminEmails
+      Policies:
+        - S3CrudPolicy:
+            BucketName: !Ref SchemasBucket
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UsersTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref TemplatesTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref InvitesTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref PayloadsTable
+      FunctionUrlConfig:
+        AuthType: !Ref FunctionUrlAuthType
+    Metadata:
+      BuildMethod: python3.11
+      BuildProperties:
+        RequirementsFile: requirements-lambda.txt
+
+Outputs:
+  ApiFunctionUrl:
+    Description: HTTPS base URL for the API
+    Value: !GetAtt ApiFunctionUrl.FunctionUrl
+  ApiFunctionArn:
+    Description: Lambda function ARN
+    Value: !GetAtt ApiFunction.Arn
+  SchemasBucketName:
+    Description: S3 bucket for schema templates
+    Value: !Ref SchemasBucket
+  FrontendBucketName:
+    Description: S3 bucket for frontend static assets
+    Value: !Ref FrontendBucket
+  FrontendWebsiteUrl:
+    Description: Frontend website URL (S3 website endpoint)
+    Value: !GetAtt FrontendBucket.WebsiteURL
+  UsersTableName:
+    Description: DynamoDB users table
+    Value: !Ref UsersTable
+  TemplatesTableName:
+    Description: DynamoDB templates table
+    Value: !Ref TemplatesTable
+  InvitesTableName:
+    Description: DynamoDB invites table
+    Value: !Ref InvitesTable
+  PayloadsTableName:
+    Description: DynamoDB payloads table
+    Value: !Ref PayloadsTable

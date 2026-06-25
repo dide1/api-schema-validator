@@ -1,0 +1,16 @@
+# Copy to samconfig.toml and adjust, or use `sam deploy --guided` once.
+
+version = 0.1
+
+[default.deploy.parameters]
+stack_name = "api-schema-validator"
+resolve_s3 = true
+s3_prefix = "api-schema-validator"
+region = "us-east-1"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM"
+image_repositories = []
+parameter_overrides = "FrontendUrl=http://localhost:5173 JwtSecret=change-me-in-production"
+
+[default.global.parameters]
+region = "us-east-1"
