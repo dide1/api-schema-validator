@@ -104,6 +104,19 @@ class SchemaDeleteResponse(BaseModel):
     message: str
 
 
+class UserResponse(BaseModel):
+    id: str
+    email: str
+    name: str
+    role: str
+    team_id: str | None = None
+
+
+class UserUpdateRequest(BaseModel):
+    role: str | None = None
+    team_id: str | None = None
+
+
 class GitCheckinRequest(BaseModel):
     message: str = Field(..., min_length=1)
 
