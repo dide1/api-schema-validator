@@ -5,5 +5,28 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+IS_LAMBDA = bool(os.getenv("AWS_LAMBDA_FUNCTION_NAME"))
+
 REPO_PATH = Path(os.getenv("REPO_PATH", ".")).resolve()
-SCHEMAS_DIR = Path(os.getenv("SCHEMAS_DIR", "./schemas"))
+
+if IS_LAMBDA:
+    BUNDLED_SCHEMAS_DIR = Path(os.getenv("BUNDLED_SCHEMAS_DIR", "/var/task/schemas"))
+    WRITABLE_SCHEMAS_DIR = Path(os.getenv("WRITABLE_SCHEMAS_DIR", "/tmp/schemas"))
+    SCHEMAS_DIR = BUNDLED_SCHEMAS_DIR
+    SCHEMA_SEARCH_DIRS: list[Path] = [WRITABLE_SCHEMAS_DIR, BUNDLED_SCHEMAS_DIR]
+else:
+    SCHEMAS_DIR = Path(os.getenv("SCHEMAS_DIR", "./schemas")).resolve()
+    BUNDLED_SCHEMAS_DIR = SCHEMAS_DIR
+    WRITABLE_SCHEMAS_DIR = SCHEMAS_DIR
+    SCHEMA_SEARCH_DIRS = [SCHEMAS_DIR]
+
+STORAGE_BACKEND = os.getenv("STORAGE_BACKEND", "aws" if IS_LAMBDA else "filesystem")
+METADATA_DB_PATH = Path(os.getenv("METADATA_DB_PATH", str(SCHEMAS_DIR.parent / "metadata.db")))
+
+S3_BUCKET = os.getenv("S3_BUCKET", "")
+DYNAMODB_USERS_TABLE = os.getenv("DYNAMODB_USERS_TABLE", "")
+DYNAMODB_TEMPLATES_TABLE = os.getenv("DYNAMODB_TEMPLATES_TABLE", "")
+DYNAMODB_TEAMS_TABLE = os.getenv("DYNAMODB_TEAMS_TABLE", "")
+DYNAMODB_INVITES_TABLE = os.getenv("DYNAMODB_INVITES_TABLE", "")
+DYNAMODB_PAYLOADS_TABLE = os.getenv("DYNAMODB_PAYLOADS_TABLE", "")
+
