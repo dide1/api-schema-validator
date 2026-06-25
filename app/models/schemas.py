@@ -142,5 +142,14 @@ class GitStatusResponse(BaseModel):
     untracked: list[str]
 
 
+class InviteResponse(BaseModel):
+    token: str
+    team_id: str
+    invited_by: str
+    created_at: str
+    expires_at: str
+    link: str | None = None
+
+
 class ErrorResponse(BaseModel):
     detail: str | list[dict[str, Any]]
