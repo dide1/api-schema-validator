@@ -29,6 +29,7 @@ from app.exceptions.handlers import (
 )
 from app.routers import auth, validate
 from app.routers.invites import router as invites_router
+from app.routers.payloads import router as payloads_router
 
 
 @asynccontextmanager
@@ -71,6 +72,7 @@ app.include_router(validate.router)
 app.include_router(validate.schemas_router)
 app.include_router(auth.router)
 app.include_router(invites_router)
+app.include_router(payloads_router)
 
 if not IS_LAMBDA:
     from git.exc import GitCommandError
