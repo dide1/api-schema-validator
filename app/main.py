@@ -1,6 +1,8 @@
+import time
+import uuid
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from jsonschema.exceptions import SchemaError
@@ -27,17 +29,23 @@ from app.exceptions.handlers import (
     unhandled_exception_handler,
     validation_service_error_handler,
 )
+from app.logging_config import get_logger, set_request_context, setup_logging
 from app.routers import auth, validate
 from app.routers.invites import router as invites_router
 from app.routers.payloads import router as payloads_router
 
+setup_logging(is_lambda=IS_LAMBDA)
+logger = get_logger(__name__)
+
 
 @asynccontextmanager
 async def lifespan(application: FastAPI):
+    logger.info("Application startup", extra={"auth_enabled": AUTH_ENABLED, "is_lambda": IS_LAMBDA})
     if AUTH_ENABLED:
         from app.services.template_service import template_service
         template_service.seed_bundled_templates()
     yield
+    logger.info("Application shutdown")
 
 
 app = FastAPI(
@@ -46,6 +54,44 @@ app = FastAPI(
     version="2.0.0",
     lifespan=lifespan,
 )
+
+
+@app.middleware("http")
+async def request_logging_middleware(request: Request, call_next):
+    aws_context = request.scope.get("aws.context")
+    request_id = getattr(aws_context, "aws_request_id", None) or str(uuid.uuid4())
+    set_request_context(request_id)
+
+    start = time.perf_counter()
+    logger.info(
+        "Request started",
+        extra={"http_method": request.method, "path": request.url.path},
+    )
+
+    try:
+        response = await call_next(request)
+    except Exception:
+        duration_ms = round((time.perf_counter() - start) * 1000)
+        logger.error(
+            "Request failed with unhandled exception",
+            extra={"http_method": request.method, "path": request.url.path, "duration_ms": duration_ms},
+            exc_info=True,
+        )
+        raise
+
+    duration_ms = round((time.perf_counter() - start) * 1000)
+    log_fn = logger.warning if response.status_code >= 400 else logger.info
+    log_fn(
+        "Request completed",
+        extra={
+            "http_method": request.method,
+            "path": request.url.path,
+            "status_code": response.status_code,
+            "duration_ms": duration_ms,
+        },
+    )
+    return response
+
 
 app.add_middleware(
     CORSMiddleware,
