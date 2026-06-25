@@ -9,7 +9,7 @@ from app.dependencies.auth import get_current_user, require_admin
 from app.exceptions.errors import BadRequestError, ForbiddenError, UnauthorizedError
 from app.models.domain import Role, User, Visibility
 from app.logging_config import get_logger
-from app.models.schemas import UserResponse, UserUpdateRequest
+from app.models.schemas import TeamMembersResponse, UserResponse, UserUpdateRequest
 
 logger = get_logger(__name__)
 from app.services import auth_service
@@ -108,6 +108,27 @@ def update_me(
         name=updated.name,
         role=updated.role.value,
         team_id=updated.team_id,
+    )
+
+
+@router.get("/team/members", response_model=TeamMembersResponse)
+def list_team_members(user: User = Depends(get_current_user)) -> TeamMembersResponse:
+    if not app.config.AUTH_ENABLED:
+        return TeamMembersResponse(team_id="default", members=[])
+    if not user.team_id:
+        raise BadRequestError("You are not a member of any team")
+    store = get_metadata_store()
+    members = [u for u in store.list_users() if u.team_id == user.team_id]
+    logger.info(
+        "Team members listed",
+        extra={"team_id": user.team_id, "actor_id": user.id, "member_count": len(members)},
+    )
+    return TeamMembersResponse(
+        team_id=user.team_id,
+        members=[
+            UserResponse(id=m.id, email=m.email, name=m.name, role=m.role.value, team_id=m.team_id)
+            for m in sorted(members, key=lambda m: m.name)
+        ],
     )
 
 
