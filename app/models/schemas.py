@@ -6,7 +6,7 @@ from app.models.domain import Visibility
 
 
 class SingleValidateRequest(BaseModel):
-    schema_name: str = Field(..., min_length=1, description="Name of the schema file (without .json)")
+    schema_name: str = Field(..., min_length=1, pattern=r"^[a-zA-Z0-9_-]+$", description="Name of the schema file (without .json)")
     payload: dict[str, Any] = Field(..., description="JSON payload to validate")
 
 
@@ -22,12 +22,12 @@ class SingleValidateResponse(BaseModel):
 
 
 class BatchValidateItem(BaseModel):
-    schema_name: str = Field(..., min_length=1)
+    schema_name: str = Field(..., min_length=1, pattern=r"^[a-zA-Z0-9_-]+$")
     payload: dict[str, Any]
 
 
 class BatchValidateRequest(BaseModel):
-    items: list[BatchValidateItem] = Field(..., min_length=1)
+    items: list[BatchValidateItem] = Field(..., min_length=1, max_length=100)
 
 
 class BatchValidateResultItem(BaseModel):

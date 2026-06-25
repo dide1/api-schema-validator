@@ -32,8 +32,12 @@ DYNAMODB_PAYLOADS_TABLE = os.getenv("DYNAMODB_PAYLOADS_TABLE", "")
 
 AUTH_ENABLED = os.getenv("AUTH_ENABLED", "false").lower() in ("true", "1", "yes")
 JWT_SECRET = os.getenv("JWT_SECRET", "dev-secret-change-in-production")
+SESSION_SECRET = os.getenv("SESSION_SECRET", JWT_SECRET)
 JWT_EXPIRE_MINUTES = int(os.getenv("JWT_EXPIRE_MINUTES", "60"))
 JWT_ALGORITHM = "HS256"
+
+if IS_LAMBDA and JWT_SECRET == "dev-secret-change-in-production":
+    raise RuntimeError("JWT_SECRET must be set in production — do not use the default value")
 
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET", "")
