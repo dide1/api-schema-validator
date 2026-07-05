@@ -13,3 +13,6 @@ samconfig.toml
 .metadata.db
 frontend/node_modules/
 frontend/dist/
+frontend/.vite/
+metadata.sql
+metadata.db

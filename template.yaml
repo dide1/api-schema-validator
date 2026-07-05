@@ -44,6 +44,16 @@ Parameters:
     Type: String
     Default: ""
     Description: Comma-separated admin email addresses
+  DatabaseUrl:
+    Type: String
+    NoEcho: true
+    Default: ""
+    Description: PostgreSQL connection string (e.g. Supabase). Overrides DynamoDB when set.
+  AnthropicApiKey:
+    Type: String
+    NoEcho: true
+    Default: ""
+    Description: Anthropic API key for AI-powered error explanations
 
 Resources:
   SchemasBucket:
@@ -174,6 +184,8 @@ Resources:
           GITHUB_CLIENT_ID: !Ref GitHubClientId
           GITHUB_CLIENT_SECRET: !Ref GitHubClientSecret
           ADMIN_EMAILS: !Ref AdminEmails
+          DATABASE_URL: !Ref DatabaseUrl
+          ANTHROPIC_API_KEY: !Ref AnthropicApiKey
       Policies:
         - S3CrudPolicy:
             BucketName: !Ref SchemasBucket
@@ -189,8 +201,6 @@ Resources:
         AuthType: !Ref FunctionUrlAuthType
     Metadata:
       BuildMethod: python3.11
-      BuildProperties:
-        RequirementsFile: requirements-lambda.txt
 
 Outputs:
   ApiFunctionUrl:

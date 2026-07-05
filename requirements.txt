@@ -4,3 +4,11 @@ pydantic>=2.0
 jsonschema
 GitPython
 python-dotenv
+psycopg2-binary
+mangum
+authlib
+python-jose[cryptography]
+httpx
+boto3
+itsdangerous
+anthropic

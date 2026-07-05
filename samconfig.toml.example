@@ -10,7 +10,7 @@ region = "us-east-1"
 confirm_changeset = true
 capabilities = "CAPABILITY_IAM"
 image_repositories = []
-parameter_overrides = "FrontendUrl=http://localhost:5173 JwtSecret=change-me-in-production"
+parameter_overrides = "FrontendUrl=https://your-frontend-url JwtSecret=your-jwt-secret DatabaseUrl=postgresql://postgres:[password]@db.[ref].supabase.co:5432/postgres?sslmode=require AdminEmails=you@example.com GoogleClientId= GoogleClientSecret= GitHubClientId= GitHubClientSecret= AnthropicApiKey=your-anthropic-api-key"
 
 [default.global.parameters]
 region = "us-east-1"
