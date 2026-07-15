@@ -61,7 +61,7 @@ def list_invites(admin: User = Depends(require_admin)) -> list[InviteResponse]:
 
 
 @router.get("/{token}", response_model=InviteResponse)
-def get_invite(token: str, _user: User = Depends(get_current_user)) -> InviteResponse:
+def get_invite(token: str) -> InviteResponse:
     invite = get_metadata_store().get_invite(token)
     if invite is None:
         raise UnauthorizedError("Invite link not found.")
