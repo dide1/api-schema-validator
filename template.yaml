@@ -81,6 +81,31 @@ Resources:
         IgnorePublicAcls: false
         RestrictPublicBuckets: false
 
+  SdkBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: false
+        BlockPublicPolicy: false
+        IgnorePublicAcls: false
+        RestrictPublicBuckets: false
+
+  SdkBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref SdkBucket
+      PolicyDocument:
+        Statement:
+          - Sid: PublicReadGetObject
+            Effect: Allow
+            Principal: "*"
+            Action: s3:GetObject
+            Resource: !Sub "${SdkBucket.Arn}/*"
+
   FrontendBucketPolicy:
     Type: AWS::S3::BucketPolicy
     Properties:
@@ -230,3 +255,9 @@ Outputs:
   PayloadsTableName:
     Description: DynamoDB payloads table
     Value: !Ref PayloadsTable
+  SdkBucketName:
+    Description: S3 bucket hosting the Java SDK JAR
+    Value: !Ref SdkBucket
+  SdkDownloadUrl:
+    Description: Download URL for the latest Java SDK JAR
+    Value: !Sub "https://${SdkBucket.DomainName}/schema-validator-sdk-1.0.0.jar"
