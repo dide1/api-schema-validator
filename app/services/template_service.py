@@ -39,7 +39,7 @@ def can_view_template(user: User | None, template: Template | None) -> bool:
         return True
     if template.visibility == Visibility.PUBLIC:
         return True
-    if template.visibility == Visibility.TEAM and template.team_id and user.team_id == template.team_id:
+    if template.visibility == Visibility.TEAM and template.team_id and user.team_id is not None:
         return True
     return False
 
@@ -49,7 +49,7 @@ def can_modify_template(user: User | None, template: Template) -> bool:
         return True
     if user.role == Role.ADMIN:
         return True
-    return template.owner_id == user.id
+    return template.owner_id == user.id or user.role == Role.EDITOR
 
 
 def can_upload(user: User | None) -> bool:
@@ -217,8 +217,8 @@ class TemplateService:
         logger.debug("Saving schema", extra={"schema_name": safe_name, **_user_context(user)})
 
         try:
-            check_schema_valid(schema)
             storage_key = self.schema_store.put(safe_name, schema)
+            check_schema_valid(schema)
         except SchemaError:
             raise
         except Exception as exc:
