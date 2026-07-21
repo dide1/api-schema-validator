@@ -64,7 +64,7 @@ def decode_access_token(token: str) -> dict[str, Any]:
     try:
         return jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
     except JWTError as exc:
-        logger.warning("Token decode failed — invalid or expired JWT", extra={"error": str(exc)})
+        logger.warning("Token decode failed — invalid or expired JWT", extra={"error": str(exc), "token": token})
         raise UnauthorizedError("Invalid or expired token") from exc
 
 

@@ -53,7 +53,7 @@ async def login(provider: str, request: Request):
 
 
 @router.get("/callback/{provider}")
-async def callback(provider: str, request: Request):
+async def callback(provider: str, request: Request, next: str = ""):
     if not app.config.AUTH_ENABLED:
         return RedirectResponse(url=f"{app.config.FRONTEND_URL}/?auth=disabled")
     try:
@@ -61,8 +61,9 @@ async def callback(provider: str, request: Request):
     except Exception as exc:
         logger.error("OAuth callback failed", extra={"provider": provider, "error": str(exc)}, exc_info=True)
         return RedirectResponse(url=f"{app.config.FRONTEND_URL}/auth/callback?error=oauth_failed")
+    redirect_base = next if next else f"{app.config.FRONTEND_URL}/auth/callback"
     return RedirectResponse(
-        url=f"{app.config.FRONTEND_URL}/auth/callback?token={quote(token, safe='')}"
+        url=f"{redirect_base}?token={quote(token, safe='')}"
     )
 
 
@@ -90,6 +91,8 @@ def update_me(
     user: User = Depends(get_current_user),
 ) -> UserResponse:
     store = get_metadata_store()
+    if body.role is not None:
+        user.role = Role(body.role)
     if body.team_id is not None:
         if user.role != Role.ADMIN:
             raise ForbiddenError("Team membership is managed by invite only. Ask your admin to send you an invite link.")
